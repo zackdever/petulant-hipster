@@ -1,0 +1,78 @@
+#!/bin/bash
+
+INSTALLPATH="/opt/rdiorocks/docker"
+SCRIPTPATH="/Users/$USER/repo/rdiorocks/script"
+
+if [ $# -ne 1 ]; then
+  echo "Usage: $ rdiorocks <cmd>"
+  echo "where cmd is one of:"
+  echo "  ssh"
+  echo "  start"
+  echo "  setup"
+fi
+if [ $# -eq 1 ]; then
+  if [ "x$1" = "xssh" ]; then
+    pushd "$INSTALLPATH"
+    vagrant ssh
+  elif [ "x$1" = "xstart" ]; then
+    pushd "$INSTALLPATH"
+    vagrant ssh < "$SCRIPTPATH/mysqld.sh"
+  elif [ "x$1" = "xsetup" ]; then
+    # make a sandbox
+    SANDBOX="/opt/rdiorocks"
+    mkdir -p "$SANDBOX"
+    pushd "$SANDBOX"
+
+    # install VirtualBox
+    command -v VBoxManage >/dev/null 2>&1 && echo 'VirtualBox already installed.' || {
+      echo 'Installing VirtualBox'
+
+      SHORT_VERSION="4.2.12"
+      FILENAME="VirtualBox-4.2.12-84980-OSX.dmg"
+      VBOX="http://download.virtualbox.org/virtualbox/${SHORT_VERSION}/${FILENAME}"
+
+      wget "$VBOX" -O "$FILENAME"
+      hdiutil attach "$FILENAME"
+
+      PKG="/Volumes/VirtualBox/VirtualBox.pkg"
+      # XXX check if it's already mounted, if so unmount
+      sudo installer -pkg "$PKG" \
+                     -target "/Volumes/Macintosh HD";
+      hdiutil unmount "$PKG"
+    }
+
+    # install Vagrant
+    command -v vagrant >/dev/null 2>&1 && echo 'Vagrant already installed.' || {
+      echo 'Installing Vagrant'
+
+      SHA="7e400d00a3c5a0fdf2809c8b5001a035415a607b"
+      FILENAME="Vagrant-1.2.2.dmg"
+      VAGRANT="http://files.vagrantup.com/packages/${SHA}/${FILENAME}"
+
+      wget "$VAGRANT" -O "$FILENAME" 
+      hdiutil attach "$FILENAME"
+
+      PKG="/Volumes/Vagrant/Vagrant.pkg"
+      # XXX check if it's already mounted, if so unmount
+      sudo installer -pkg "$PKG" \
+                     -target "/Volumes/Macintosh HD";
+
+      hdiutil unmount "$PKG"
+    }
+
+    # download Docker
+    if [ ! -d "docker" ]; then
+      #git clone https://github.com/dotcloud/docker.git
+      # forward all ports to vagrant host that have been exported from docker containers
+      git clone -b 856-vagrant-port-forwarding https://github.com/edx/docker
+      export FORWARD_DOCKER_PORTS="true"
+    fi
+
+    pushd docker
+    vagrant up
+    vagrant ssh < "$SCRIPTPATH/bootstrap-vm.sh"
+  else
+    echo "Unknown command $1"
+    exit 1
+  fi
+fi
