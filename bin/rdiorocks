@@ -1,7 +1,12 @@
 #!/bin/bash
 
-INSTALLPATH="/opt/rdiorocks/docker"
-SCRIPTPATH="/Users/$USER/repo/rdiorocks/script"
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+pushd $HERE > /dev/null 2>&1
+cd ../
+SCRIPTPATH="$( pwd )/script"
+mkdir -p install
+INSTALLPATH="$( pwd )/install"
+popd > /dev/null 2>&1
 
 if [ $# -ne 1 ]; then
   echo "Usage: $ rdiorocks <cmd>"
@@ -11,18 +16,14 @@ if [ $# -ne 1 ]; then
   echo "  setup"
 fi
 if [ $# -eq 1 ]; then
+  cd "$INSTALLPATH"
   if [ "x$1" = "xssh" ]; then
-    pushd "$INSTALLPATH"
+    cd docker
     vagrant ssh
   elif [ "x$1" = "xstart" ]; then
-    pushd "$INSTALLPATH"
+    cd docker
     vagrant ssh < "$SCRIPTPATH/mysqld.sh"
   elif [ "x$1" = "xsetup" ]; then
-    # make a sandbox
-    SANDBOX="/opt/rdiorocks"
-    mkdir -p "$SANDBOX"
-    pushd "$SANDBOX"
-
     # install VirtualBox
     command -v VBoxManage >/dev/null 2>&1 && echo 'VirtualBox already installed.' || {
       echo 'Installing VirtualBox'
@@ -49,7 +50,7 @@ if [ $# -eq 1 ]; then
       FILENAME="Vagrant-1.2.2.dmg"
       VAGRANT="http://files.vagrantup.com/packages/${SHA}/${FILENAME}"
 
-      wget "$VAGRANT" -O "$FILENAME" 
+      wget "$VAGRANT" -O "$FILENAME"
       hdiutil attach "$FILENAME"
 
       PKG="/Volumes/Vagrant/Vagrant.pkg"
@@ -67,7 +68,7 @@ if [ $# -eq 1 ]; then
       export FORWARD_DOCKER_PORTS="true"
     fi
 
-    pushd docker
+    cd docker
     vagrant up
     vagrant ssh < "$SCRIPTPATH/bootstrap-vm.sh"
   else
