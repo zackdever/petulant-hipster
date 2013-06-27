@@ -62,9 +62,8 @@ if [ $# -eq 1 ]; then
 
     # download Docker
     if [ ! -d "docker" ]; then
-      #git clone https://github.com/dotcloud/docker.git
+      git clone https://github.com/dotcloud/docker.git
       # forward all ports to vagrant host that have been exported from docker containers
-      git clone -b 856-vagrant-port-forwarding https://github.com/edx/docker
       export FORWARD_DOCKER_PORTS="true"
     fi
 
